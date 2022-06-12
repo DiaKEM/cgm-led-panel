@@ -9,6 +9,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_NeoMatrix.h>
 #include <Adafruit_NeoPixel.h>
+#include "config.h"
 
 #define PIN 14
 Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(32, 8, PIN,
@@ -18,12 +19,6 @@ Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(32, 8, PIN,
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "de.pool.ntp.org", 0, 5000);
-
-const char *ssid = "WLAN_SSID";
-const char *password = "WLAN_PASSWORD";
-
-const char *serverName = "https://my-diakem-instance/api/v1/graphql";
-String appToken = "MY_APP_TOKEN";
 
 void setupMatrix()
 {
@@ -197,7 +192,8 @@ void freeze()
   delay(2000);
 }
 
-void resetMatrix() {
+void resetMatrix()
+{
   matrix.fillScreen(0);
   matrix.setCursor(0, 0);
   matrix.setTextWrap(false);
@@ -253,6 +249,7 @@ void setup()
 {
   Serial.begin(9600);
   WiFi.begin(ssid, password);
+
   timeClient.begin();
   setupMatrix();
 
@@ -264,58 +261,77 @@ void setup()
     Serial.print(".");
   }
 
+  WiFi.setAutoReconnect(true);
+  WiFi.persistent(true);
   Serial.println("Connected to the WiFi network");
 }
 
-
-void loop()
+bool checkWifi()
 {
   if (WiFi.status() == WL_CONNECTED)
   {
-    HTTPClient http;
-
-    // Your Domain name with URL path or IP address with path
-    http.begin(serverName);
-
-    // Specify content-type header
-    http.addHeader("Content-Type", "application/json");
-    http.addHeader("X-API-KEY", appToken);
-    String httpRequestData = "{\"query\": \"query Query {bloodSugarAlternativeEventMany(limit: 2, sort: DATE_DESC) {date value trend}}\"}";
-
-    // Send HTTP POST request
-    int code = http.POST(httpRequestData);
-
-    if (code != 200)
-    {
-      showApiProblem();
-      freeze();
-      return;
-    }
-
-    String response = http.getString();
-    http.end();
-
-    DynamicJsonDocument doc(1024);
-    deserializeJson(doc, response);
-    int value = doc["data"]["bloodSugarAlternativeEventMany"][0]["value"];
-    int valueOld = doc["data"]["bloodSugarAlternativeEventMany"][1]["value"];
-    int valueDifference = value - valueOld;
-    String valueSign = valueDifference == 0 ? "+/-" : valueDifference > 0 ? "+"
-                                                                          : "";
-    String trend = doc["data"]["bloodSugarAlternativeEventMany"][0]["trend"];
-    int timeDifference = getTimeDifference(doc["data"]["bloodSugarAlternativeEventMany"][0]["date"]);
-    
-    showBloodSugar(value, trend);
-    freeze();
-    showBloodSugarDifference(valueDifference, valueSign);
-    freeze();
-    showTimeDifference(timeDifference);
-    freeze();
+    return true;
   }
-  else
+
+  switch (WiFi.status())
   {
-    showWlanProblem();
+  case WL_NO_SSID_AVAIL:
+    Serial.println("Configured SSID cannot be reached");
+    showError("SSID cannot be found.");
+    break;
+  case WL_CONNECT_FAILED:
+    Serial.println("WLAN password incorrect");
+    break;
+  }
+
+  return false;
+}
+
+void loop()
+{
+  if (checkWifi() == false)
+  {
     freeze();
     return;
   }
+
+  HTTPClient http;
+
+  // Your Domain name with URL path or IP address with path
+  http.begin(serverName);
+
+  // Specify content-type header
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("X-API-KEY", appToken);
+  String httpRequestData = "{\"query\": \"query Query {bloodSugarAlternativeEventMany(limit: 2, sort: DATE_DESC) {date value trend}}\"}";
+
+  // Send HTTP POST request
+  int code = http.POST(httpRequestData);
+
+  if (code != 200)
+  {
+    showApiProblem();
+    freeze();
+    return;
+  }
+
+  String response = http.getString();
+  http.end();
+
+  DynamicJsonDocument doc(1024);
+  deserializeJson(doc, response);
+  int value = doc["data"]["bloodSugarAlternativeEventMany"][0]["value"];
+  int valueOld = doc["data"]["bloodSugarAlternativeEventMany"][1]["value"];
+  int valueDifference = value - valueOld;
+  String valueSign = valueDifference == 0 ? "+/-" : valueDifference > 0 ? "+"
+                                                                        : "";
+  String trend = doc["data"]["bloodSugarAlternativeEventMany"][0]["trend"];
+  int timeDifference = getTimeDifference(doc["data"]["bloodSugarAlternativeEventMany"][0]["date"]);
+
+  showBloodSugar(value, trend);
+  freeze();
+  showBloodSugarDifference(valueDifference, valueSign);
+  freeze();
+  showTimeDifference(timeDifference);
+  freeze();
 }

@@ -66,7 +66,7 @@ Now open VSCode and open the project with PlatformIO:
 
 <a href="https://ibb.co/XLy06Nh"><img src="https://i.ibb.co/B34WvdX/Bildschirmfoto-2022-06-12-um-01-09-54.png" alt="Bildschirmfoto-2022-06-12-um-01-09-54" border="0"></a>
 
-Now you are ready to set all necessary configuration parameter:
+Now you are ready to set all necessary configuration parameter in `src/config.h`:
 
 ```
 const char *ssid = "MY-WLAN-SSID";
