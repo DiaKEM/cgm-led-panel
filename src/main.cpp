@@ -303,7 +303,7 @@ void loop()
   // Specify content-type header
   http.addHeader("Content-Type", "application/json");
   http.addHeader("X-API-KEY", appToken);
-  String httpRequestData = "{\"query\": \"query Query {bloodSugarAlternativeEventMany(limit: 2, sort: DATE_DESC) {date value trend}}\"}";
+  String httpRequestData = "{\"query\": \"query Query {bloodSugarEventMany(limit: 2, sort: DATE_DESC) {date value trend}}\"}";
 
   // Send HTTP POST request
   int code = http.POST(httpRequestData);
@@ -320,13 +320,13 @@ void loop()
 
   DynamicJsonDocument doc(1024);
   deserializeJson(doc, response);
-  int value = doc["data"]["bloodSugarAlternativeEventMany"][0]["value"];
-  int valueOld = doc["data"]["bloodSugarAlternativeEventMany"][1]["value"];
+  int value = doc["data"]["bloodSugarEventMany"][0]["value"];
+  int valueOld = doc["data"]["bloodSugarEventMany"][1]["value"];
   int valueDifference = value - valueOld;
   String valueSign = valueDifference == 0 ? "+/-" : valueDifference > 0 ? "+"
                                                                         : "";
-  String trend = doc["data"]["bloodSugarAlternativeEventMany"][0]["trend"];
-  int timeDifference = getTimeDifference(doc["data"]["bloodSugarAlternativeEventMany"][0]["date"]);
+  String trend = doc["data"]["bloodSugarEventMany"][0]["trend"];
+  int timeDifference = getTimeDifference(doc["data"]["bloodSugarEventMany"][0]["date"]);
 
   showBloodSugar(value, trend);
   freeze();
